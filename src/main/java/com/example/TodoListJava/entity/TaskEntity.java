@@ -14,8 +14,8 @@ import java.time.LocalDate;
 @Setter
 @Entity
 @Table(
-        name = "tb_tarefa",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"usuario_id", "name"})
+        name = "tb_task",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "name"})
 )
 public class TaskEntity implements Serializable {
 
@@ -37,7 +37,6 @@ public class TaskEntity implements Serializable {
     private Boolean favorite;
 
     @ManyToOne
-    @JoinColumn(name = "usuario_id")
-    private UserEntity usuario;
-
+    @JoinColumn(name = "user_id")
+    private UserEntity user;
 }

@@ -12,7 +12,7 @@ import java.util.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "tb_usuario")
+@Table(name = "tb_user")
 public class UserEntity implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -34,9 +34,13 @@ public class UserEntity implements Serializable {
     private String imgUrl;
 
     @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @JoinTable(name = "tb_usuario_cargo", joinColumns = @JoinColumn(name = "usuario_id"), inverseJoinColumns = @JoinColumn(name = "cargo_id"))
+    @JoinTable(name = "tb_user_cargo", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "cargo_id"))
     private Set<PositionEntity> cargos = new HashSet<>();
 
-    @OneToMany(mappedBy = "usuario")
+    @OneToMany(mappedBy = "user")
     private List<TaskEntity> tarefas = new ArrayList<>();
+    public boolean hasPosition(String positionName) {
+        return cargos.stream()
+                .anyMatch(position -> position.getAuthority().equals(positionName));
+    }
 }
