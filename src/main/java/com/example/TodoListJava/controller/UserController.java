@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import com.example.TodoListJava.dto.user.UserDTO;
 import com.example.TodoListJava.dto.user.UserInsertDTO;
+import com.example.TodoListJava.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
