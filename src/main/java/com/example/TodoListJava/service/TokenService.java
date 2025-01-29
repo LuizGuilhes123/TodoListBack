@@ -27,9 +27,11 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.JWTVerifier;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j // Logging
 public class TokenService implements UserDetailsService {
 
     @Value("${auth.jwt.token.secret}")
@@ -47,47 +49,61 @@ public class TokenService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserEntity user = usuarioRepository.findByEmail(username).orElseThrow(() ->
-                new ObjectNotFoundException("Email não encontrado"));
+        // Validação do usuário
+        UserEntity user = usuarioRepository.findByEmail(username)
+                .orElseThrow(() -> new ObjectNotFoundException("Email não encontrado"));
         return new CustomUserDetails(user);
     }
 
-
     public TokenResponseDTO obterToken(AuthenticationDTO authDto) {
-        UserEntity user = usuarioRepository.findByEmail(authDto.email()).get();
-        if (user == null) {
-            throw new UsernameNotFoundException("Obter Token falhou");
-        }
+        // Valida a existência do usuário
+        UserEntity user = usuarioRepository.findByEmail(authDto.email())
+                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
         return generateTokens(user);
     }
 
     public TokenResponseDTO generateTokens(UserEntity usuario) {
         try {
             Algorithm algorithm = Algorithm.HMAC256(secret);
-            String rolesAsString = String.join(",",
-                    usuario.getCargos().stream().map(PositionEntity::getAuthority).collect(Collectors.toList()));
+            String rolesAsString = usuario.getCargos().stream()
+                    .map(PositionEntity::getAuthority)
+                    .collect(Collectors.joining(","));
 
-            String accessToken = JWT.create().withIssuer(ISSUER).withSubject(usuario.getEmail())
-                    .withClaim("id", usuario.getId().toString()).withClaim("nome", usuario.getName())
-                    .withClaim("email", usuario.getEmail()).withClaim("roles", rolesAsString)
+            String accessToken = JWT.create()
+                    .withIssuer(ISSUER)
+                    .withSubject(usuario.getEmail())
+                    .withClaim("id", usuario.getId().toString())
+                    .withClaim("nome", usuario.getName())
+                    .withClaim("email", usuario.getEmail())
+                    .withClaim("roles", rolesAsString)
                     .withClaim("notification", usuario.getNotification())
-                    .withExpiresAt(genExpiInstance()).sign(algorithm);
+                    .withExpiresAt(genExpiInstance())
+                    .sign(algorithm);
 
-            String refreshToken = JWT.create().withIssuer(ISSUER).withSubject(usuario.getEmail())
-                    .withExpiresAt(genRefreshTokenExpiInstance()).sign(algorithm);
+            String refreshToken = JWT.create()
+                    .withIssuer(ISSUER)
+                    .withSubject(usuario.getEmail())
+                    .withExpiresAt(genRefreshTokenExpiInstance())
+                    .sign(algorithm);
 
             return new TokenResponseDTO(accessToken, refreshToken);
         } catch (JWTCreationException e) {
-            throw new RuntimeException("Erro na hora de gerar os tokens");
+            log.error("Erro ao gerar tokens: {}", e.getMessage());
+            throw new RuntimeException("Erro na hora de gerar os tokens", e);
         }
     }
 
     public String validacaoToken(String token) {
         try {
             Algorithm algorithm = Algorithm.HMAC256(secret);
-            return JWT.require(algorithm).withIssuer(ISSUER).build().verify(token).getSubject();
-        } catch (JWTCreationException e) {
-            throw new IllegalArgumentException("Problema na hora de validar o token");
+            return JWT.require(algorithm)
+                    .withIssuer(ISSUER)
+                    .build()
+                    .verify(token)
+                    .getSubject();
+        } catch (JWTVerificationException e) {
+            log.error("Erro ao validar o token: {}", e.getMessage());
+            throw new IllegalArgumentException("Problema na validação do token", e);
         }
     }
 
@@ -101,33 +117,30 @@ public class TokenService implements UserDetailsService {
 
     public TokenResponseDTO refreshAccessToken(String refreshToken) {
         try {
-
             Algorithm algorithm = Algorithm.HMAC256(secret);
-            JWTVerifier verifier = JWT.require(algorithm).withIssuer(ISSUER).acceptExpiresAt(3600).build();
+            JWTVerifier verifier = JWT.require(algorithm)
+                    .withIssuer(ISSUER)
+                    .acceptExpiresAt(3600)
+                    .build();
             DecodedJWT jwt = verifier.verify(refreshToken);
 
             String email = jwt.getSubject();
-
-            UserEntity usuario = usuarioRepository.findByEmail(email).get();
-            if (usuario == null) {
-                throw new ObjectNotFoundException("Email não encontrado");
-            }
+            UserEntity usuario = usuarioRepository.findByEmail(email)
+                    .orElseThrow(() -> new ObjectNotFoundException("Email não encontrado"));
 
             return generateTokens(usuario);
         } catch (JWTVerificationException e) {
             if (e instanceof TokenExpiredException) {
-                Algorithm.HMAC256(secret);
+                log.warn("Refresh token expirado, gerando novo token.");
                 DecodedJWT jwt = JWT.decode(refreshToken);
                 String email = jwt.getSubject();
-
-                UserEntity usuario = usuarioRepository.findByEmail(email).get();
-                if (usuario == null) {
-                    throw new ObjectNotFoundException("Email não encontrado");
-                }
+                UserEntity usuario = usuarioRepository.findByEmail(email)
+                        .orElseThrow(() -> new ObjectNotFoundException("Email não encontrado"));
 
                 return generateTokens(usuario);
             } else {
-                throw new IllegalArgumentException("Refresh token inválido");
+                log.error("Refresh token inválido: {}", e.getMessage());
+                throw new IllegalArgumentException("Refresh token inválido", e);
             }
         }
     }
