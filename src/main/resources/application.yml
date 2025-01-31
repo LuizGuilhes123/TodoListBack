@@ -38,11 +38,11 @@ spring:
             enabled: true
             required: true
 
-# Configurações de autenticação JWT
+# Configurações de autentica??o JWT
 auth:
   jwt:
     token:
-      secret: ${JWT_TOKEN_SECRET}
+      secret: G7$k9!mZ@3pQ^xR8&fT*eW1#jL2sH6$u
       expiration: 2
     refresh-token:
       expiration: 8
