@@ -1,11 +1,11 @@
-# Configura??es do banco de dados
+# Configurações do banco de dados
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/eco_manager
     username: postgres
     password: admin594
 
-  # Configura??es adicionais do JPA
+  # Configurações adicionais do JPA
   jpa:
     hibernate:
       ddl-auto: update
@@ -16,7 +16,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: true
 
-  # Configura??es do servidor
+  # Configurações do servidor
   config:
     import: optional:file:.env[.properties]
   application:
@@ -24,7 +24,7 @@ spring:
   profiles:
     active: test
 
-  # Configura??es de e-mail
+  # Configurações de e-mail
   mail:
     host: smtp.gmail.com
     port: 587
@@ -38,7 +38,7 @@ spring:
             enabled: true
             required: true
 
-# Configura??es de autentica??o JWT
+# Configurações de autentica??o JWT
 auth:
   jwt:
     token:
